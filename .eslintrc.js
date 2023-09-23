@@ -26,4 +26,13 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['@typescript-eslint', 'react', 'react-hooks'],
+  rules: {
+    'react/no-unescaped-entities': 'off',
+    'react/prop-types': 'off',
+    'no-empty': 'off',
+    'no-undef': 'off', // for jest
+    '@typescript-eslint/no-unused-vars': 'off',
+    '@typescript-eslint/no-var-requires': 'off',
+  },
+  ignorePatterns: [],
 }

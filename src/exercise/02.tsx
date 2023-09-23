@@ -2,50 +2,95 @@
 // http://localhost:3000/isolated/exercise/02.js
 
 import * as React from 'react'
+import {useEffect, useReducer, useState} from 'react'
 import {
   fetchPokemon,
-  PokemonForm,
   PokemonDataView,
-  PokemonInfoFallback,
   PokemonErrorBoundary,
+  PokemonForm,
+  PokemonInfoFallback,
 } from '../pokemon'
 
-// 🐨 this is going to be our generic asyncReducer
-function pokemonInfoReducer(state, action) {
-  switch (action.type) {
-    case 'pending': {
-      // 🐨 replace "pokemon" with "data"
-      return {status: 'pending', pokemon: null, error: null}
+enum StatusType {
+  idle = 'idle',
+  pending = 'pending',
+  resolved = 'resolved',
+  rejected = 'rejected',
+}
+type Pokemon = unknown
+
+type State = {
+  status: StatusType
+  pokemon?: Pokemon | null
+  error?: Error | null
+}
+
+type BaseAction = {type: string}
+
+type Action =
+  | {
+      type: StatusType.pending
     }
-    case 'resolved': {
+  | {
+      type: StatusType.resolved
+      pokemon: Pokemon
+    }
+  | {
+      type: StatusType.rejected
+      error: Error
+    }
+
+// 🐨 this is going to be our generic asyncReducer
+function pokemonInfoReducer(state: State, action: Action) {
+  switch (action.type) {
+    case StatusType.pending: {
+      // 🐨 replace "pokemon" with "data"
+      return {status: StatusType.pending, pokemon: null, error: null}
+    }
+    case StatusType.resolved: {
       // 🐨 replace "pokemon" with "data" (in the action too!)
-      return {status: 'resolved', pokemon: action.pokemon, error: null}
+      return {
+        status: StatusType.resolved,
+        pokemon: action.pokemon,
+        error: null,
+      }
     }
     case 'rejected': {
       // 🐨 replace "pokemon" with "data"
-      return {status: 'rejected', pokemon: null, error: action.error}
+      return {
+        status: StatusType.rejected,
+        pokemon: null,
+        error: action.error,
+      }
     }
     default: {
-      throw new Error(`Unhandled action type: ${action.type}`)
+      throw new Error(`Unhandled action type: ${(action as BaseAction).type}`)
     }
   }
 }
 
-function PokemonInfo({pokemonName}) {
+type PokemonInfoProps = {
+  pokemonName: string
+}
+
+function PokemonInfo({pokemonName}: PokemonInfoProps) {
   // 🐨 move all the code between the lines into a new useAsync function.
   // 💰 look below to see how the useAsync hook is supposed to be called
   // 💰 If you want some help, here's the function signature (or delete this
   // comment really quick if you don't want the spoiler)!
-  // function useAsync(asyncCallback, initialState, dependencies) {/* code in here */}
 
   // -------------------------- start --------------------------
-
-  const [state, dispatch] = React.useReducer(pokemonInfoReducer, {
-    status: pokemonName ? 'pending' : 'idle',
+  const initialState = {
+    status: pokemonName ? StatusType.pending : StatusType.idle,
     // 🐨 this will need to be "data" instead of "pokemon"
     pokemon: null,
     error: null,
-  })
+  }
+
+  const [state, dispatch] = useReducer<React.Reducer<State, Action>>(
+    pokemonInfoReducer,
+    initialState,
+  )
 
   React.useEffect(() => {
     // 💰 this first early-exit bit is a little tricky, so let me give you a hint:
@@ -57,13 +102,13 @@ function PokemonInfo({pokemonName}) {
     if (!pokemonName) {
       return
     }
-    dispatch({type: 'pending'})
+    dispatch({type: StatusType.pending})
     fetchPokemon(pokemonName).then(
       pokemon => {
-        dispatch({type: 'resolved', pokemon})
+        dispatch({type: StatusType.resolved, pokemon})
       },
       error => {
-        dispatch({type: 'rejected', error})
+        dispatch({type: StatusType.rejected, error})
       },
     )
     // 🐨 you'll accept dependencies as an array and pass that here.
@@ -99,7 +144,7 @@ function PokemonInfo({pokemonName}) {
 function App() {
   const [pokemonName, setPokemonName] = React.useState('')
 
-  function handleSubmit(newPokemonName) {
+  function handleSubmit(newPokemonName: string) {
     setPokemonName(newPokemonName)
   }
 
