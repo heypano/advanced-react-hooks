@@ -17,7 +17,20 @@ enum StatusType {
   resolved = 'resolved',
   rejected = 'rejected',
 }
-type Pokemon = unknown
+
+type Pokemon = {
+  name: string
+  number: string
+  image: string
+  attacks: {
+    special: Array<{
+      name: string
+      type: string
+      damage: number
+    }>
+  }
+  fetchedAt: string
+}
 
 type AsyncState<T> = {
   status: StatusType
@@ -57,7 +70,6 @@ function asyncStateReducer<T>(
       }
     }
     case 'rejected': {
-      // 🐨 replace "pokemon" with "data"
       return {
         status: StatusType.rejected,
         data: null,
@@ -78,10 +90,11 @@ function useAsync<T>(
   getPromise: () => Promise<T> | undefined,
   initialState: AsyncState<T>,
   deps: React.DependencyList,
-) {
-  const [state, dispatch] = useReducer<
-    React.Reducer<AsyncState<Pokemon>, Action<Pokemon>>
-  >(asyncStateReducer, initialState)
+): AsyncState<T> {
+  const [state, dispatch] = useReducer<React.Reducer<AsyncState<T>, Action<T>>>(
+    asyncStateReducer,
+    initialState,
+  )
 
   React.useEffect(() => {
     const promise = getPromise()
@@ -89,7 +102,6 @@ function useAsync<T>(
       dispatch({type: StatusType.pending})
       promise
         .then(data => {
-          console.log('woot', data)
           dispatch({type: StatusType.resolved, data})
         })
         .catch(error => {
@@ -101,15 +113,8 @@ function useAsync<T>(
   return state
 }
 function PokemonInfo({pokemonName}: PokemonInfoProps) {
-  // 🐨 move all the code between the lines into a new useAsync function.
-  // 💰 look below to see how the useAsync hook is supposed to be called
-  // 💰 If you want some help, here's the function signature (or delete this
-  // comment really quick if you don't want the spoiler)!
-
-  // -------------------------- start --------------------------
   const initialState: AsyncState<Pokemon> = {
     status: pokemonName ? StatusType.pending : StatusType.idle,
-    // 🐨 this will need to be "data" instead of "pokemon"
     data: null,
     error: null,
   }
@@ -134,6 +139,9 @@ function PokemonInfo({pokemonName}: PokemonInfoProps) {
     case 'rejected':
       throw error
     case 'resolved':
+      if (!pokemon) {
+        throw new Error('Fetch resolved with no pokemon')
+      }
       return <PokemonDataView pokemon={pokemon} />
     default:
       throw new Error('This should be impossible')
