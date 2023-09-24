@@ -88,25 +88,35 @@ type PokemonInfoProps = {
 
 function useAsync<T>(
   getPromise: () => Promise<T> | undefined,
-  initialState: AsyncState<T>,
+  initialState: Partial<AsyncState<T>> | undefined,
   deps: React.DependencyList,
 ): AsyncState<T> {
   const [state, dispatch] = useReducer<React.Reducer<AsyncState<T>, Action<T>>>(
     asyncStateReducer,
-    initialState,
+    {
+      status: StatusType.idle,
+      data: null,
+      error: null,
+      ...(initialState ?? {}),
+    },
   )
 
   React.useEffect(() => {
     const promise = getPromise()
     if (promise) {
+      console.log('Pending')
       dispatch({type: StatusType.pending})
       promise
         .then(data => {
+          console.log('Resolved', data)
           dispatch({type: StatusType.resolved, data})
         })
         .catch(error => {
+          console.log('Rejected', error)
           dispatch({type: StatusType.rejected, error})
         })
+    } else {
+      console.log('No promise')
     }
   }, deps)
 
@@ -115,8 +125,6 @@ function useAsync<T>(
 function PokemonInfo({pokemonName}: PokemonInfoProps) {
   const initialState: AsyncState<Pokemon> = {
     status: pokemonName ? StatusType.pending : StatusType.idle,
-    data: null,
-    error: null,
   }
 
   const state = useAsync<Pokemon>(
@@ -148,8 +156,46 @@ function PokemonInfo({pokemonName}: PokemonInfoProps) {
   }
 }
 
+function useLocalStorageState<T>(
+  key: string,
+  defaultValue: T | (() => T),
+  // the = {} fixes the error we would get from destructuring when no argument was passed
+  // Check https://jacobparis.com/blog/destructure-arguments for a detailed explanation
+  {serialize = JSON.stringify, deserialize = JSON.parse} = {},
+): [T, React.Dispatch<T>] {
+  const [state, setState] = React.useState(() => {
+    const valueInLocalStorage = window.localStorage.getItem(key)
+    if (valueInLocalStorage) {
+      // the try/catch is here in case the localStorage value was set before
+      // we had the serialization in place (like we do in previous extra credits)
+      try {
+        return deserialize(valueInLocalStorage)
+      } catch (error) {
+        window.localStorage.removeItem(key)
+      }
+    }
+    return typeof defaultValue === 'function'
+      ? (defaultValue as () => T)()
+      : defaultValue
+  })
+
+  const prevKeyRef = React.useRef(key)
+
+  // Check the example at src/examples/local-state-key-change.js to visualize a key change
+  React.useEffect(() => {
+    const prevKey = prevKeyRef.current
+    if (prevKey !== key) {
+      window.localStorage.removeItem(prevKey)
+    }
+    prevKeyRef.current = key
+    window.localStorage.setItem(key, serialize(state))
+  }, [key, state, serialize])
+
+  return [state, setState]
+}
+
 function App() {
-  const [pokemonName, setPokemonName] = React.useState('')
+  const [pokemonName, setPokemonName] = useLocalStorageState('pokemonName', '')
 
   function handleSubmit(newPokemonName: string) {
     setPokemonName(newPokemonName)

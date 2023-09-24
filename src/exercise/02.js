@@ -1,3 +1,14 @@
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 // useCallback: custom hooks
 // http://localhost:3000/isolated/exercise/02.js
@@ -25,7 +36,6 @@ function asyncStateReducer(state, action) {
             };
         }
         case 'rejected': {
-            // 🐨 replace "pokemon" with "data"
             return {
                 status: StatusType.rejected,
                 data: null,
@@ -38,35 +48,32 @@ function asyncStateReducer(state, action) {
     }
 }
 function useAsync(getPromise, initialState, deps) {
-    var _a = useReducer(asyncStateReducer, initialState), state = _a[0], dispatch = _a[1];
+    var _a = useReducer(asyncStateReducer, __assign({ status: StatusType.idle, data: null, error: null }, (initialState !== null && initialState !== void 0 ? initialState : {}))), state = _a[0], dispatch = _a[1];
     React.useEffect(function () {
         var promise = getPromise();
         if (promise) {
+            console.log('Pending');
             dispatch({ type: StatusType.pending });
             promise
                 .then(function (data) {
-                console.log('woot', data);
+                console.log('Resolved', data);
                 dispatch({ type: StatusType.resolved, data: data });
             })
                 .catch(function (error) {
+                console.log('Rejected', error);
                 dispatch({ type: StatusType.rejected, error: error });
             });
+        }
+        else {
+            console.log('No promise');
         }
     }, deps);
     return state;
 }
 function PokemonInfo(_a) {
-    // 🐨 move all the code between the lines into a new useAsync function.
-    // 💰 look below to see how the useAsync hook is supposed to be called
-    // 💰 If you want some help, here's the function signature (or delete this
-    // comment really quick if you don't want the spoiler)!
     var pokemonName = _a.pokemonName;
-    // -------------------------- start --------------------------
     var initialState = {
         status: pokemonName ? StatusType.pending : StatusType.idle,
-        // 🐨 this will need to be "data" instead of "pokemon"
-        data: null,
-        error: null,
     };
     var state = useAsync(function () {
         if (!pokemonName) {
@@ -83,13 +90,52 @@ function PokemonInfo(_a) {
         case 'rejected':
             throw error;
         case 'resolved':
+            if (!pokemon) {
+                throw new Error('Fetch resolved with no pokemon');
+            }
             return _jsx(PokemonDataView, { pokemon: pokemon });
         default:
             throw new Error('This should be impossible');
     }
 }
+function useLocalStorageState(key, defaultValue, 
+// the = {} fixes the error we would get from destructuring when no argument was passed
+// Check https://jacobparis.com/blog/destructure-arguments for a detailed explanation
+_a) {
+    var 
+    // the = {} fixes the error we would get from destructuring when no argument was passed
+    // Check https://jacobparis.com/blog/destructure-arguments for a detailed explanation
+    _b = _a === void 0 ? {} : _a, _c = _b.serialize, serialize = _c === void 0 ? JSON.stringify : _c, _d = _b.deserialize, deserialize = _d === void 0 ? JSON.parse : _d;
+    var _e = React.useState(function () {
+        var valueInLocalStorage = window.localStorage.getItem(key);
+        if (valueInLocalStorage) {
+            // the try/catch is here in case the localStorage value was set before
+            // we had the serialization in place (like we do in previous extra credits)
+            try {
+                return deserialize(valueInLocalStorage);
+            }
+            catch (error) {
+                window.localStorage.removeItem(key);
+            }
+        }
+        return typeof defaultValue === 'function'
+            ? defaultValue()
+            : defaultValue;
+    }), state = _e[0], setState = _e[1];
+    var prevKeyRef = React.useRef(key);
+    // Check the example at src/examples/local-state-key-change.js to visualize a key change
+    React.useEffect(function () {
+        var prevKey = prevKeyRef.current;
+        if (prevKey !== key) {
+            window.localStorage.removeItem(prevKey);
+        }
+        prevKeyRef.current = key;
+        window.localStorage.setItem(key, serialize(state));
+    }, [key, state, serialize]);
+    return [state, setState];
+}
 function App() {
-    var _a = React.useState(''), pokemonName = _a[0], setPokemonName = _a[1];
+    var _a = useLocalStorageState('pokemonName', ''), pokemonName = _a[0], setPokemonName = _a[1];
     function handleSubmit(newPokemonName) {
         setPokemonName(newPokemonName);
     }
