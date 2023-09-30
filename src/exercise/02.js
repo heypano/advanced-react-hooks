@@ -47,7 +47,7 @@ function asyncStateReducer(state, action) {
         }
     }
 }
-function useAsync(getPromise, initialState, deps) {
+function useAsync(getPromise, initialState) {
     var _a = useReducer(asyncStateReducer, __assign({ status: StatusType.idle, data: null, error: null }, (initialState !== null && initialState !== void 0 ? initialState : {}))), state = _a[0], dispatch = _a[1];
     React.useEffect(function () {
         var promise = getPromise();
@@ -67,7 +67,7 @@ function useAsync(getPromise, initialState, deps) {
         else {
             console.log('No promise');
         }
-    }, deps);
+    }, [getPromise]);
     return state;
 }
 function PokemonInfo(_a) {
@@ -75,12 +75,13 @@ function PokemonInfo(_a) {
     var initialState = {
         status: pokemonName ? StatusType.pending : StatusType.idle,
     };
-    var state = useAsync(function () {
+    var asyncCallback = React.useCallback(function () {
         if (!pokemonName) {
             return;
         }
         return fetchPokemon(pokemonName);
-    }, initialState, [pokemonName]);
+    }, [pokemonName]);
+    var state = useAsync(asyncCallback, initialState);
     var pokemon = state.data, status = state.status, error = state.error;
     switch (status) {
         case 'idle':
@@ -142,7 +143,7 @@ function App() {
     function handleReset() {
         setPokemonName('');
     }
-    return (_jsxs("div", { className: "pokemon-info-app", children: [_jsx(PokemonForm, { pokemonName: pokemonName, onSubmit: handleSubmit }), _jsx("hr", {}), _jsx("div", { className: "pokemon-info", children: _jsx(PokemonErrorBoundary, { onReset: handleReset, resetKeys: [pokemonName], children: _jsx(PokemonInfo, { pokemonName: pokemonName }) }) })] }));
+    return (_jsxs("div", { className: "pokemon-info-app", children: ["Callback", _jsx(PokemonForm, { pokemonName: pokemonName, onSubmit: handleSubmit }), _jsx("hr", {}), _jsx("div", { className: "pokemon-info", children: _jsx(PokemonErrorBoundary, { onReset: handleReset, resetKeys: [pokemonName], children: _jsx(PokemonInfo, { pokemonName: pokemonName }) }) })] }));
 }
 function AppWithUnmountCheckbox() {
     var _a = React.useState(true), mountApp = _a[0], setMountApp = _a[1];

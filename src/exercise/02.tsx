@@ -89,7 +89,6 @@ type PokemonInfoProps = {
 function useAsync<T>(
   getPromise: () => Promise<T> | undefined,
   initialState: Partial<AsyncState<T>> | undefined,
-  deps: React.DependencyList,
 ): AsyncState<T> {
   const [state, dispatch] = useReducer<React.Reducer<AsyncState<T>, Action<T>>>(
     asyncStateReducer,
@@ -118,7 +117,7 @@ function useAsync<T>(
     } else {
       console.log('No promise')
     }
-  }, deps)
+  }, [getPromise])
 
   return state
 }
@@ -127,16 +126,14 @@ function PokemonInfo({pokemonName}: PokemonInfoProps) {
     status: pokemonName ? StatusType.pending : StatusType.idle,
   }
 
-  const state = useAsync<Pokemon>(
-    () => {
-      if (!pokemonName) {
-        return
-      }
-      return fetchPokemon(pokemonName) as Promise<Pokemon>
-    },
-    initialState,
-    [pokemonName],
-  )
+  const asyncCallback = React.useCallback(() => {
+    if (!pokemonName) {
+      return
+    }
+    return fetchPokemon(pokemonName) as Promise<Pokemon>
+  }, [pokemonName])
+
+  const state = useAsync<Pokemon>(asyncCallback, initialState)
   const {data: pokemon, status, error} = state
 
   switch (status) {
@@ -148,6 +145,7 @@ function PokemonInfo({pokemonName}: PokemonInfoProps) {
       throw error
     case 'resolved':
       if (!pokemon) {
+        console.error('Error: Fetch resolved with no pokemon')
         throw new Error('Fetch resolved with no pokemon')
       }
       return <PokemonDataView pokemon={pokemon} />
@@ -207,6 +205,7 @@ function App() {
 
   return (
     <div className="pokemon-info-app">
+      Callback
       <PokemonForm pokemonName={pokemonName} onSubmit={handleSubmit} />
       <hr />
       <div className="pokemon-info">
