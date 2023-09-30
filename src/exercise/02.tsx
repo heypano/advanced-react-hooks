@@ -2,7 +2,6 @@
 // http://localhost:3000/isolated/exercise/02.js
 
 import * as React from 'react'
-import {useEffect, useReducer, useState} from 'react'
 import {
   fetchPokemon,
   PokemonDataView,
@@ -10,13 +9,8 @@ import {
   PokemonForm,
   PokemonInfoFallback,
 } from '../pokemon'
-
-enum StatusType {
-  idle = 'idle',
-  pending = 'pending',
-  resolved = 'resolved',
-  rejected = 'rejected',
-}
+import {AsyncState, StatusType, useAsync} from './useAsync'
+import {useEffect} from 'react'
 
 type Pokemon = {
   name: string
@@ -32,109 +26,23 @@ type Pokemon = {
   fetchedAt: string
 }
 
-type AsyncState<T> = {
-  status: StatusType
-  data?: T | null
-  error?: Error | null
-}
-
-type BaseAction = {type: string}
-
-type Action<T> =
-  | {
-      type: StatusType.pending
-    }
-  | {
-      type: StatusType.resolved
-      data: T
-    }
-  | {
-      type: StatusType.rejected
-      error: Error
-    }
-
-// 🐨 this is going to be our generic asyncReducer
-function asyncStateReducer<T>(
-  state: AsyncState<T>,
-  action: Action<T>,
-): AsyncState<T> {
-  switch (action.type) {
-    case StatusType.pending: {
-      return {status: StatusType.pending, data: null, error: null}
-    }
-    case StatusType.resolved: {
-      return {
-        status: StatusType.resolved,
-        data: action.data,
-        error: null,
-      }
-    }
-    case 'rejected': {
-      return {
-        status: StatusType.rejected,
-        data: null,
-        error: action.error,
-      }
-    }
-    default: {
-      throw new Error(`Unhandled action type: ${(action as BaseAction).type}`)
-    }
-  }
-}
-
 type PokemonInfoProps = {
   pokemonName: string
 }
 
-function useAsync<T>(
-  getPromise: () => Promise<T> | undefined,
-  initialState: Partial<AsyncState<T>> | undefined,
-): AsyncState<T> {
-  const [state, dispatch] = useReducer<React.Reducer<AsyncState<T>, Action<T>>>(
-    asyncStateReducer,
-    {
-      status: StatusType.idle,
-      data: null,
-      error: null,
-      ...(initialState ?? {}),
-    },
-  )
-
-  React.useEffect(() => {
-    const promise = getPromise()
-    if (promise) {
-      console.log('Pending')
-      dispatch({type: StatusType.pending})
-      promise
-        .then(data => {
-          console.log('Resolved', data)
-          dispatch({type: StatusType.resolved, data})
-        })
-        .catch(error => {
-          console.log('Rejected', error)
-          dispatch({type: StatusType.rejected, error})
-        })
-    } else {
-      console.log('No promise')
-    }
-  }, [getPromise])
-
-  return state
-}
 function PokemonInfo({pokemonName}: PokemonInfoProps) {
   const initialState: AsyncState<Pokemon> = {
     status: pokemonName ? StatusType.pending : StatusType.idle,
   }
 
-  const asyncCallback = React.useCallback(() => {
+  const {data: pokemon, status, error, run} = useAsync<Pokemon>(initialState)
+
+  useEffect(() => {
     if (!pokemonName) {
       return
     }
-    return fetchPokemon(pokemonName) as Promise<Pokemon>
-  }, [pokemonName])
-
-  const state = useAsync<Pokemon>(asyncCallback, initialState)
-  const {data: pokemon, status, error} = state
+    run(fetchPokemon(pokemonName))
+  }, [pokemonName, run])
 
   switch (status) {
     case 'idle':
@@ -205,7 +113,7 @@ function App() {
 
   return (
     <div className="pokemon-info-app">
-      Callback
+      Callback extra 2
       <PokemonForm pokemonName={pokemonName} onSubmit={handleSubmit} />
       <hr />
       <div className="pokemon-info">
