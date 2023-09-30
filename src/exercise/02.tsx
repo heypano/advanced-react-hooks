@@ -2,29 +2,16 @@
 // http://localhost:3000/isolated/exercise/02.js
 
 import * as React from 'react'
+import {useEffect} from 'react'
 import {
   fetchPokemon,
+  Pokemon,
   PokemonDataView,
   PokemonErrorBoundary,
   PokemonForm,
   PokemonInfoFallback,
-} from '../pokemon'
+} from '../pokemon.js'
 import {AsyncState, StatusType, useAsync} from './useAsync'
-import {useEffect} from 'react'
-
-type Pokemon = {
-  name: string
-  number: string
-  image: string
-  attacks: {
-    special: Array<{
-      name: string
-      type: string
-      damage: number
-    }>
-  }
-  fetchedAt: string
-}
 
 type PokemonInfoProps = {
   pokemonName: string

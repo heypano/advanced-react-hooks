@@ -2,9 +2,9 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 // useCallback: custom hooks
 // http://localhost:3000/isolated/exercise/02.js
 import * as React from 'react';
-import { fetchPokemon, PokemonDataView, PokemonErrorBoundary, PokemonForm, PokemonInfoFallback, } from '../pokemon';
-import { StatusType, useAsync } from './useAsync';
 import { useEffect } from 'react';
+import { fetchPokemon, PokemonDataView, PokemonErrorBoundary, PokemonForm, PokemonInfoFallback, } from '../pokemon.js';
+import { StatusType, useAsync } from './useAsync';
 function PokemonInfo(_a) {
     var pokemonName = _a.pokemonName;
     var initialState = {
