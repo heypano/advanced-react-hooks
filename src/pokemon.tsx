@@ -203,7 +203,7 @@ function PokemonForm({
   )
 }
 
-function ErrorFallback({
+export function ErrorFallback({
   error,
   resetErrorBoundary,
 }: {
