@@ -18,6 +18,13 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import * as React from 'react';
 import { fetchPokemon, PokemonForm, PokemonDataView, PokemonInfoFallback, PokemonErrorBoundary, } from '../pokemon';
 import { useAsync } from '../utils';
+import { createContext, useContext, useReducer } from 'react';
+var PokemonCacheContext = createContext(null);
+function PokemonCacheProvider(_a) {
+    var children = _a.children;
+    var _b = useReducer(pokemonCacheReducer, {}), cache = _b[0], dispatch = _b[1];
+    return (_jsx(PokemonCacheContext.Provider, { value: [cache, dispatch], children: children }));
+}
 function pokemonCacheReducer(state, action) {
     var _a;
     switch (action.type) {
@@ -29,20 +36,27 @@ function pokemonCacheReducer(state, action) {
         }
     }
 }
+function usePokemonContext() {
+    var context = useContext(PokemonCacheContext);
+    if (!context) {
+        throw new Error('usePokemonContext must be used within a PokemonCacheProvider');
+    }
+    return context;
+}
 function PokemonInfo(_a) {
     var pokemonName = _a.pokemonName;
-    // 💣 remove the useReducer here (or move it up to your PokemonCacheProvider)
-    var _b = React.useReducer(pokemonCacheReducer, {}), cache = _b[0], dispatch = _b[1];
-    // 🐨 get the cache and dispatch from useContext with PokemonCacheContext
+    var _b = usePokemonContext(), cache = _b[0], dispatch = _b[1];
     var _c = useAsync(), pokemon = _c.data, status = _c.status, error = _c.error, run = _c.run, setData = _c.setData;
     React.useEffect(function () {
         if (!pokemonName) {
             return;
         }
         else if (cache[pokemonName]) {
+            console.log('from cache!');
             setData(cache[pokemonName]);
         }
         else {
+            console.log('fetch!');
             run(fetchPokemon(pokemonName).then(function (pokemonData) {
                 dispatch({ type: 'ADD_POKEMON', pokemonName: pokemonName, pokemonData: pokemonData });
                 return pokemonData;
@@ -65,15 +79,12 @@ function PokemonInfo(_a) {
 }
 function PreviousPokemon(_a) {
     var onSelect = _a.onSelect;
-    // 🐨 get the cache from useContext with PokemonCacheContext
-    var cache = {};
+    var cache = usePokemonContext()[0];
     return (_jsxs("div", { children: ["Previous Pokemon", _jsx("ul", { style: { listStyle: 'none', paddingLeft: 0 }, children: Object.keys(cache).map(function (pokemonName) { return (_jsx("li", { style: { margin: '4px auto' }, children: _jsx("button", { style: { width: '100%' }, onClick: function () { return onSelect(pokemonName); }, children: pokemonName }) }, pokemonName)); }) })] }));
 }
 function PokemonSection(_a) {
     var onSelect = _a.onSelect, pokemonName = _a.pokemonName;
-    // 🐨 wrap this in the PokemonCacheProvider so the PreviousPokemon
-    // and PokemonInfo components have access to that context.
-    return (_jsxs("div", { style: { display: 'flex' }, children: [_jsx(PreviousPokemon, { onSelect: onSelect }), _jsx("div", { className: "pokemon-info", style: { marginLeft: 10 }, children: _jsx(PokemonErrorBoundary, { onReset: function () { return onSelect(''); }, resetKeys: [pokemonName], children: _jsx(PokemonInfo, { pokemonName: pokemonName }) }) })] }));
+    return (_jsx(PokemonCacheProvider, { children: _jsxs("div", { style: { display: 'flex' }, children: [_jsx(PreviousPokemon, { onSelect: onSelect }), _jsx("div", { className: "pokemon-info", style: { marginLeft: 10 }, children: _jsx(PokemonErrorBoundary, { onReset: function () { return onSelect(''); }, resetKeys: [pokemonName], children: _jsx(PokemonInfo, { pokemonName: pokemonName }) }) })] }) }));
 }
 function App() {
     var _a = React.useState(''), pokemonName = _a[0], setPokemonName = _a[1];
