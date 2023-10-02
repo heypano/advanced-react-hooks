@@ -14,7 +14,7 @@ export type AsyncState<T> = {
   error?: Error | null
 }
 export type BaseAction = {type: string}
-export type Action<T> =
+export type AsyncAction<T> =
   | {
       type: StatusType.pending
     }
@@ -30,7 +30,7 @@ export type Action<T> =
 // 🐨 this is going to be our generic asyncReducer
 export function asyncStateReducer<T>(
   state: AsyncState<T>,
-  action: Action<T>,
+  action: AsyncAction<T>,
 ): AsyncState<T> {
   switch (action.type) {
     case StatusType.pending: {
@@ -64,15 +64,14 @@ export type UseAsyncReturn<T> = AsyncState<T> & {
 export function useAsync<T>(
   initialState: Partial<AsyncState<T>> | undefined,
 ): UseAsyncReturn<T> {
-  const [state, dispatch] = useReducer<React.Reducer<AsyncState<T>, Action<T>>>(
-    asyncStateReducer,
-    {
-      status: StatusType.idle,
-      data: null,
-      error: null,
-      ...(initialState ?? {}),
-    },
-  )
+  const [state, dispatch] = useReducer<
+    React.Reducer<AsyncState<T>, AsyncAction<T>>
+  >(asyncStateReducer, {
+    status: StatusType.idle,
+    data: null,
+    error: null,
+    ...(initialState ?? {}),
+  })
 
   const run = useCallback<AsyncRun<T>>(promise => {
     console.log('Pending')
