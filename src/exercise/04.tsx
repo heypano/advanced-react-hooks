@@ -3,11 +3,22 @@
 
 import * as React from 'react'
 
-function MessagesDisplay({messages}) {
-  const containerRef = React.useRef()
+type Message = {
+  id: number
+  author: string
+  content: string
+}
+
+type MessagesDisplayProps = {
+  messages: Message[]
+}
+function MessagesDisplay({messages}: MessagesDisplayProps) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
   // 🐨 replace useEffect with useLayoutEffect
   React.useEffect(() => {
-    containerRef.current.scrollTop = containerRef.current.scrollHeight
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight
+    }
   })
 
   return (
